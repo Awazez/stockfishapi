@@ -16,7 +16,19 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create the Stockfish command
+	// Récupérer le paramètre depth (profondeur), avec une valeur par défaut de 15
+	depth := r.URL.Query().Get("depth")
+	if depth == "" {
+		depth = "15"
+	}
+
+	// Récupérer le paramètre threads, avec une valeur par défaut de 1
+	threads := r.URL.Query().Get("threads")
+	if threads == "" {
+		threads = "1"
+	}
+
+	// Créer la commande Stockfish
 	cmd := exec.Command("stockfish")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -29,34 +41,35 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start the Stockfish process
+	// Démarrer le processus Stockfish
 	if err := cmd.Start(); err != nil {
 		http.Error(w, "Failed to start Stockfish", http.StatusInternalServerError)
 		return
 	}
 
-	// Send commands to Stockfish
+	// Envoyer les commandes à Stockfish
 	go func() {
 		defer stdin.Close()
 		fmt.Fprintln(stdin, "uci")
+		fmt.Fprintln(stdin, "setoption name Threads value", threads) // Configurer le nombre de threads
 		fmt.Fprintln(stdin, "position fen", fen)
-		fmt.Fprintln(stdin, "go depth 15")
+		fmt.Fprintln(stdin, "go depth", depth) // Configurer la profondeur de recherche
 	}()
 
-	// Capture the output
+	// Capturer la sortie
 	var buf strings.Builder
 	go func() {
 		defer stdout.Close()
 		io.Copy(&buf, stdout)
 	}()
 
-	// Wait for the process to finish
+	// Attendre la fin du processus
 	if err := cmd.Wait(); err != nil {
 		http.Error(w, "Stockfish process failed", http.StatusInternalServerError)
 		return
 	}
 
-	// Find the best move in the output
+	// Extraire le meilleur coup de la sortie
 	output := buf.String()
 	bestMove := extractBestMove(output)
 	if bestMove == "" {
@@ -64,7 +77,7 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write the best move to the response
+	// Retourner le meilleur coup en réponse
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(bestMove))
 }
