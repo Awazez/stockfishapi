@@ -67,10 +67,15 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		response.WriteString(line + "\n")
 
-		// Send updates to client in real-time
+		// Capture and return lines that contain " pv " which indicates a principal variation line
+		if strings.Contains(line, " pv ") {
+			response.WriteString(line + "\n")
+		}
+
+		// Stop reading after the best move is found
 		if strings.HasPrefix(line, "bestmove") {
+			response.WriteString(line + "\n")
 			break
 		}
 	}
