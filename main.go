@@ -39,7 +39,7 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 
 	multiPV := r.URL.Query().Get("multipv")
 	if multiPV == "" {
-		multiPV = "3" // Default number of variations
+		multiPV = "1" // Default to 1 if not provided
 	} else {
 		if _, err := strconv.Atoi(multiPV); err != nil {
 			http.Error(w, "Invalid MultiPV parameter", http.StatusBadRequest)
@@ -67,10 +67,10 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer stdin.Close()
 		fmt.Fprintln(stdin, "uci")
-		fmt.Fprintln(stdin, "setoption name Threads value", threads)
-		fmt.Fprintln(stdin, "setoption name MultiPV value", multiPV)
-		fmt.Fprintln(stdin, "position fen", fen)
-		fmt.Fprintln(stdin, "go depth", depth)
+		fmt.Fprintf(stdin, "setoption name Threads value %s\n", threads)
+		fmt.Fprintf(stdin, "setoption name MultiPV value %s\n", multiPV)
+		fmt.Fprintf(stdin, "position fen %s\n", fen)
+		fmt.Fprintf(stdin, "go depth %s\n", depth)
 	}()
 
 	scanner := bufio.NewScanner(stdout)
