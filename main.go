@@ -37,6 +37,16 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	multiPV := r.URL.Query().Get("multipv")
+	if multiPV == "" {
+		multiPV = "3" // Default number of variations
+	} else {
+		if _, err := strconv.Atoi(multiPV); err != nil {
+			http.Error(w, "Invalid MultiPV parameter", http.StatusBadRequest)
+			return
+		}
+	}
+
 	cmd := exec.Command("stockfish")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -58,6 +68,7 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		defer stdin.Close()
 		fmt.Fprintln(stdin, "uci")
 		fmt.Fprintln(stdin, "setoption name Threads value", threads)
+		fmt.Fprintln(stdin, "setoption name MultiPV value", multiPV)
 		fmt.Fprintln(stdin, "position fen", fen)
 		fmt.Fprintln(stdin, "go depth", depth)
 	}()
@@ -67,15 +78,11 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		// Capture and return lines that contain " pv " which indicates a principal variation line
-		if strings.Contains(line, " pv ") {
-			response.WriteString(line + "\n")
-		}
+		// Capture and append all lines related to engine's thinking process
+		response.WriteString(line + "\n")
 
 		// Stop reading after the best move is found
 		if strings.HasPrefix(line, "bestmove") {
-			response.WriteString(line + "\n")
 			break
 		}
 	}
