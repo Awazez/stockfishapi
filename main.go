@@ -37,16 +37,6 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	multiPV := r.URL.Query().Get("multipv")
-	if multiPV == "" {
-		multiPV = "3" // Default MultiPV value is 3
-	} else {
-		if _, err := strconv.Atoi(multiPV); err != nil {
-			http.Error(w, "Invalid MultiPV parameter", http.StatusBadRequest)
-			return
-		}
-	}
-
 	cmd := exec.Command("stockfish")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -68,7 +58,6 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 		defer stdin.Close()
 		fmt.Fprintln(stdin, "uci")
 		fmt.Fprintf(stdin, "setoption name Threads value %s\n", threads)
-		fmt.Fprintf(stdin, "setoption name MultiPV value %s\n", multiPV)
 		fmt.Fprintf(stdin, "position fen %s\n", fen)
 		fmt.Fprintf(stdin, "go depth %s\n", depth)
 	}()
