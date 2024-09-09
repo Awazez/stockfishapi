@@ -39,7 +39,7 @@ func getBestMove(w http.ResponseWriter, r *http.Request) {
 
 	multiPV := r.URL.Query().Get("multipv")
 	if multiPV == "" {
-		multiPV = "3" // Default to 1 if not provided
+		multiPV = "3" // Default MultiPV value is 3
 	} else {
 		if _, err := strconv.Atoi(multiPV); err != nil {
 			http.Error(w, "Invalid MultiPV parameter", http.StatusBadRequest)
